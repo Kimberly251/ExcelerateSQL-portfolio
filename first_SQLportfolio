@@ -1,0 +1,490 @@
+/*List all transactions made by customers who have credit cards. Include all transaction details, credit card #, the transaction batch date (3 days after the transaction), and the customer names.*/
+
+select transaction.*,
+dateadd(day,3,transaction.transaction_date) as Batch_Date,
+credit.cardid,
+demographics.first_name,
+demographics.last_name
+ 
+from demographics join transaction on transaction.transactionid=demographics.customerid
+join credit on credit.cardid=demographics.customerid
+
+
+/*List only transactions that are transferred by customers who have credit cards. Include all transaction details and the customer names. We do not need to see the credit card number. */
+
+/*No Table Alias:*/
+select transaction.*,
+demographics.first_name,
+demographics.last_name,
+credit.card_type
+from demographics join transaction on demographics.customerid=transaction.transactionid
+join credit on credit.cardid=demographics.customerid
+where transaction.transaction_type = 'Transfer'
+
+
+/*Table Alias:*/
+select t.*,
+d.first_name,
+d.last_name,
+c.card_type
+from demographics d join transaction t on d.customerid=t.transactionid
+join credit c on c.cardid=d.customerid
+where t.transaction_type = 'Transfer'
+
+/*Out of those transactions that are transfers, provide a list of only where the transaction amount is at least greater than $3,500.00. Everything else will remain the same. 
+No Table Alias:*/
+select transaction.*, 
+demographics.first_name, 
+demographics.last_name, 
+credit.card_type 
+from demographics join transaction on demographics.customerid=transaction.transactionid 
+join credit on credit.cardid=demographics.customerid 
+where transaction.transaction_type = 'Transfer' and transaction.transaction_amount > 3500
+
+/*Table Alias:*/
+select t.*,
+d.first_name,
+d.last_name,
+c.card_type
+from demographics d join transaction t on d.customerid=t.transactionid
+join credit c on c.cardid=d.customerid
+where t.transaction_type = 'Transfer' and t.transaction_amount > 3500
+
+/*Provide a list of all customers (names included), including their customer reference number, who have taken out loans and their current loan statuses. The list should also include the type of loan and the loan number. 
+No Table Alias*/
+select demographics.first_name,
+demographics.last_name,
+demographics.customerid,
+lending.loan_status,
+lending.loan_type,
+lending.loan_id
+from lending join demographics on demographics.customerid=lending.loan_id
+where lending.loan_status != 'Rejected'
+
+/*Table Alias/
+select b.first_name,
+b.last_name,
+b.customerid,
+a.loan_status,
+a.loan_type,
+a.loan_id
+from lending a join demographics b on b.customerid=a.loan_id
+where a.loan_status != 'Rejected'
+
+/* Please update the list to reflect all customers (including customers’ names) who have taken out an auto loan, with a 48-month term, that is approved, and was approved in 2022. */
+select demographics.first_name,
+demographics.last_name,
+lending.loan_type,
+lending.loan_term,
+lending.loan_status,
+lending.approval_rejection_date,
+year(lending.approval_rejection_date) as Approval_Year
+from demographics join lending on demographics.customerid=lending.loan_id
+where year(lending.approval_rejection_date) = 2022 and 
+lending.loan_type = 'Auto' and
+lending.loan_status = 'Approved' and
+lending.loan_term = 48
+
+/*Identify customers who have given feedback and whether their issues have been resolved. The list should also include the following:
+⦁	Customer reference number (Contact number or CustomerID)
+⦁	Customer name
+⦁	Feedback number
+⦁	Type of Feedback */
+
+select demographics.first_name,
+demographics.last_name,
+demographics.contact_number,
+csat.feedbackid,
+csat.feedback_type,
+csat.resolution_status
+from demographics join csat on csat.feedbackid=demographics.customerid
+
+/* Please update the list to also show only complaints that were resolved during the 3rd quarter of 2024 as well as the resolution date. */
+select demographics.first_name,
+demographics.last_name,
+demographics.contact_number,
+csat.feedbackid,
+csat.feedback_type,
+csat.resolution_status,
+csat.resolution_date,
+quarter(csat.resolution_date) as Resolution_Quarter,
+year(csat.resolution_date) as Resolution_Year
+from demographics join csat on csat.feedbackid=demographics.customerid
+where quarter(csat.resolution_date) = 3 and year(csat.resolution_date) = 2024 and
+csat.resolution_status = 'Resolved' and csat.feedback_type = 'Complaint'
+
+/*I would like to see the difference for customers who have an AMEX credit card with balances exceeding their credit limits. Also, please include the customers’ name, credit card #, card balance, and credit limit. */
+select d.first_name,
+d.last_name,
+c.cardid,
+c.credit_limit,
+c.credit_card_balance,
+c.credit_limit-c.credit_card_balance as Difference,
+c.card_type
+from credit c join demographics d on d.customerid=c.cardid
+where c.credit_limit-c.credit_card_balance < 0 and c.card_type = 'AMEX'
+
+/*Sorry, we would like to know if any of these customers are in default. */
+select d.first_name,
+d.last_name,
+c.cardid,
+c.credit_limit,
+c.credit_card_balance,
+c.credit_limit-c.credit_card_balance as Difference,
+c.card_type,
+df.default
+from credit c join demographics d on d.customerid=c.cardid
+join default_status df on df.id=c.cardid
+where c.credit_limit-c.credit_card_balance < 0 and c.card_type = 'AMEX'
+
+/*Provide a list of customers who have made a deposit on Tuesdays and Thursdays, where the transaction reference number is between 2000 and 3500, and also have educational details records. Provide the customer names. 
+Excluding Unknown and illiterate records*?
+select demographics.first_name,
+demographics.last_name,
+transaction.transaction_type,
+transaction.transactionid,
+transaction.transaction_date,
+dayname(transaction.transaction_date) as Transaction_DOW,
+sub_demographics.education
+from demographics join transaction on demographics.customerid=transaction.transactionid
+join sub_demographics on sub_demographics.id=transaction.transactionid
+where transaction.transaction_type = 'Deposit' and transaction.transactionid between 2000 and 3500 and
+sub_demographics.education not in ('unknown','illiterate') and dayname(transaction.transaction_date) in ('Tue','Thu')
+
+/*Excluding Unknowns: */
+select demographics.first_name,
+demographics.last_name,
+transaction.transaction_type,
+transaction.transactionid,
+transaction.transaction_date,
+dayname(transaction.transaction_date) as Transaction_DOW,
+sub_demographics.education
+from demographics join transaction on demographics.customerid=transaction.transactionid
+join sub_demographics on sub_demographics.id=transaction.transactionid
+where transaction.transaction_type = 'Deposit' and transaction.transactionid between 2000 and 3500 and
+sub_demographics.education != 'unknown' and dayname(transaction.transaction_date) in ('Tue','Thu')
+
+/*Provide a list of default mortgage accounts for millennial customers located in the Atlanta, Austin, Orlando, and Dallas markets for mortgages and who opened their accounts in 2020.  Provide the customer names.*/
+select d.first_name,
+d.last_name,
+d.city,
+d.age,
+l.loan_type,
+a.date_of_account_opening,
+year(a.date_of_account_opening) as Opening_Year,
+ds.default
+from account a join demographics d on a.contact_number=d.contact_number
+join lending l on l.loan_id=d.customerid
+join default_status ds on ds.id=d.customerid
+where l.loan_type = 'Mortgage' and d.age between 28 and 43 and year(a.date_of_account_opening) = 2020 and
+d.city in ('Atlanta','Austin','Orlando','Dallas')
+
+/*Provide a list of non-mortgage customers who opened accounts within the last 4 years that have credit card payments that are at least 60 days past due in our expanded markets. Provide the customer names.*/
+select demographics.first_name,
+demographics.last_name,
+demographics.state,
+account.date_of_account_opening,
+datediff(year,date_of_account_opening,getdate()) as Years_Since,
+credit.payment_due_date,
+credit.last_credit_card_payment_date,
+datediff(day,credit.payment_due_date,credit.last_credit_card_payment_date) as Days_Past_Due,
+lending.loan_type,
+lending.loan_status
+ 
+from demographics join lending on lending.loan_id=demographics.customerid
+join account on account.contact_number=demographics.contact_number
+join credit on credit.cardid=demographics.customerid
+ 
+where demographics.state in ('CO','MT','NM','ND','OK','SD','TX','UT','WY') and
+datediff(day,credit.payment_due_date,credit.last_credit_card_payment_date) >= 60 and
+datediff(year,date_of_account_opening,getdate())  <= 4 and
+lending.loan_type != 'Mortgage' and lending.loan_status = 'Approved'
+
+/*The new head of Lending wants to know which loan types have a 60 month term? (S)
+	
+Marketing needs a list of all of the cities we have customers in with Gen Z customers. Gen Z customers are between 18 and 27 years old.*/
+
+select distinct city
+from demographics
+where age between 18 and 27
+order by city
+
+/*In preparation for success planning, the AVP of Lending is reviewing the lending portfolio for Stillwater Community Bank and is interested to see the Mortgage and Auto Loans approved over $20K. I would like to review the top 10 loans with the highest loan amount and should include the following: ID of the loan, amount of the loan, type of loan, and status of the loan. (S)
+
+⦁	 The AVP of Lending would like to now see Personal Loans approved between $10K to $20K, for the top 10 loans with the highest loan amount and should include the following: ID of the loan, amount of the loan, type of loan, and status of the loan. (S)
+
+⦁	I would like to review all rejected loans that are less than $15K in hopes to reapprove the loan. I will need to distribute the list of mortgage applications to the Mortgage Origination Manager, the list of auto applications to the Consumer Lending Manager, and the list of personal loan applications to the Regional Director of Sales. Please include in each list the following: ID of the loan, amount of the loan, type of loan, rejection date, and status of the loan. Limit each list to 10.
+
+For the mortgage list, I would also like to see the largest loan amount first. */
+select Loan_id,
+Loan_amount,
+Loan_type,
+approval_rejection_date,
+loan_status
+from lending
+where loan_amount < 15000 and loan_status = 'Rejected'  and loan_type = 'Mortgage'
+order by loan_amount desc
+limit 10
+
+/*For the auto list, I would also like to see the loan term from minimum to maximum term first. (S)
+
+For the personal list, I would also like to see the branch ID from smallest to largest first and loan term should be between 24 and 30 months. (S)
+
+⦁	Course 6: I forgot to mention, I would like to also see Credit Cards with limits less than $2000 for an automatic limit increase promotion. Included in the list: credit card IDs, type of credit card, and credit limit. Since I am only reviewing this report, I would like to see the top 10 credits with the highest credit limit first.*/
+
+select cardid,
+card_type,
+credit_limit
+from credit
+where credit_limit < 2000
+order by credit_limit desc
+limit 10
+
+/*Since we are reviewing credit cards, can I see a report that only shows MasterCards and Visas with balances greater than $4k? DO NOT include AMEX. However, I would like to see the smallest 
+balance first and only provide data for 10 cards.*/
+
+select cardid,
+card_type,
+credit_card_balance
+from credit
+where credit_card_balance > 4000 and card_type in ('MasterCard','Visa')
+Order by credit_card_balance asc
+Limit 10
+OR
+select cardid,
+card_type,
+credit_card_balance
+from credit
+where credit_card_balance > 4000 and card_type != 'AMEX '
+Order by credit_card_balance asc
+Limit 10
+
+
+
+/*I do apologize, I would also like to see a report with only AMEX where the balance is $3K and greater with the largest balances shown first. Please only provide for 10 cards.*/
+select cardid,
+card_type,
+credit_card_balance
+from credit
+where card_type = 'AMEX' and credit_card_balance >= 3000
+order by 3 desc
+limit 10
+
+/*Just received an email request from the Regional Director of Operations and Regional Director of Sales. They would like to see a list of all customers along with any information
+however they prefer the list to include only single customers who have completed the basic 9 years of education. We would also like to see the list where the job title is in order 
+from A to Z and only provide 10 customers.*/
+select *
+from sub_demographics
+where marital = 'single' and education = 'basic.9y'
+order by job asc
+limit 10
+
+/* Sorry, please include in the list both 6 and 9 years of education completed. */
+select *
+from sub_demographics
+where marital = 'single' and education in ('basic.6y','basic.9y')
+order by job asc
+limit 10
+
+/*One more request, we would like to see another list of all customers along with any information but please include customers that are married, who have completed the 
+basic 4 and 6 years of education and their job title is not an administrator or blue collar.  We would still like to see the list where the job title is in order from A to Z and only provide 10 customers.*/ 
+
+select *
+from sub_demographics
+where marital = 'married' and education in ('basic.4y','basic.6y') and job not in ('admin.','blue-collar')
+order by job asc
+limit 10
+
+/* This will be our final request. Can you provide the same list however only include customers where their job title and education are not known? We would like to see the
+customers based on their customer ID from smallest to largest and only provide a sample of 10 customers*/
+
+select *
+from sub_demographics
+where education = 'unknown' and job = 'unknown'
+order by id 
+limit 10
+
+/* The Manager’s Meetings just concluded, and the Regional Director of Sales would like to get a list of all customers and when their account(s) were opened. 
+They prefer to see the list where the month, the day, and the year the account was opened listed separately for each customer. However, they would still like to see the original account opening date.*/
+
+select contact_number,
+date_of_account_opening,
+monthname(date_of_account_opening) as Opening_Month,
+dayname(date_of_account_opening) as Opening_DOW,
+year(date_of_account_opening) as Opening_Year
+from account
+
+/*I would like to make a change to my original request, and I would like to know which customers opened their accounts in the month of August in 2022.
+Please provide a list of customers and be sure to also include the original account opening date.*/
+
+select contact_number,
+date_of_account_opening,
+monthname(date_of_account_opening) as Opening_Month,
+dayname(date_of_account_opening) as Opening_DOW,
+year(date_of_account_opening) as Opening_Year
+from account
+where monthname(date_of_account_opening) = 'Aug' and
+year(date_of_account_opening) = 2022
+
+/* It was brought to our attention that there were issues with accounts that were opened during the 1st 10 days of August 2022. We will need to perform back-office maintenance for these accounts. 
+Please provide an updated list of customers who opened their account between the 1st and 10th in the month of August 2022. 
+Please provide a list of customers and be sure to also include the original account opening date.*/
+
+select contact_number,
+date_of_account_opening,
+month(date_of_account_opening) as Month_Number,
+day(date_of_account_opening) as Day_Number,
+year(date_of_account_opening) as Opening_Year
+from account
+where day(date_of_account_opening) between 1 and 10 and
+month(date_of_account_opening) = 8 and
+year(date_of_account_opening) = 2022
+
+/*The Risk Management team needs a list of customers where their last transaction was completed on Saturday and Sunday. 
+ I’m sorry. I forgot to mention I need the list to include the customers’ last transaction completed on Saturday and Sunday in the month of December 2023. */
+
+select contact_number,
+last_transaction_date,
+dayname(last_transaction_date) as Transaction_DOW,
+monthname(last_transaction_date) as Transaction_Month,
+year(last_transaction_date) as Transaction_Year
+from account
+where year(last_transaction_date) = 2023 and 
+monthname(last_transaction_date) = 'Dec' and
+dayname(last_transaction_date) in ('Sat','Sun')
+
+/*The AVP of Lending has requested a list of loans that were approved during the 2nd quarter. Please be sure to include the loan number as well as the original approval date. Thank you. 
+I hope you have not completed the report yet. The AVP of Lending also needs this report to show the loans that were approved in the year 2021 for the 2nd quarter.
+There are no additional changes to how they would like to see the list. Thank you. */
+
+select loan_id,
+loan_amount,
+loan_type,
+loan_status,
+approval_rejection_date,
+quarter(approval_rejection_date) as Approval_Quarter,
+year(approval_rejection_date) as Approval_Year
+from lending
+where loan_status = 'Approved' and quarter(approval_rejection_date) = 2 and
+year(approval_rejection_date) = 2021
+
+/*The AVP of Lending needs to determine the number of days past due for each credit cardholder based on their last payment date compared to their due date 
+(Note: Negative days reflect that the payment was made on time). Include the following:
+⦁	Card Number
+⦁	Card Type
+⦁	Payment Due Date
+⦁	Last Payment Date
+⦁	Past due days
+
+ It’s me again. They would like to see the list for VISA and Master Card holders only. Everything else is still the same.
+There seems to be a slight confusion. The list they need should only show credit cardholders that are past due more than 10 days. 
+Please update the list to reflect this change. No additional changes to the list are needed currently. */
+
+select cardid,
+card_type,
+payment_due_date,
+last_credit_card_payment_date,
+datediff(day,payment_due_date,last_credit_card_payment_date) as Days_Past_Due
+from credit
+where card_type in ('MasterCard','Visa') and 
+datediff(day,payment_due_date,last_credit_card_payment_date) > 10
+
+OR
+
+select cardid,
+card_type,
+payment_due_date,
+last_credit_card_payment_date,
+datediff(day,last_credit_card_payment_date,payment_due_date) as Days_Past_Due
+from credit
+where card_type in ('MasterCard','Visa') and 
+datediff(day,last_credit_card_payment_date,payment_due_date) < -10
+
+/*We are getting ready to roll out a 1 yr 5.1% APY savings account promotion for our Checking customers who have been with us for at least 5 years. May you provide a list of these customers to 
+Marketing by EOD so they can send mailers to these customers prior to the promotion kickoff that is scheduled for Monday? */
+
+select contact_number,
+account_type,
+date_of_account_opening,
+getdate() as Today,
+datediff(year,date_of_account_opening,getdate()) as Years_Since_Customer
+from account
+where datediff(year,date_of_account_opening,getdate()) >=5 and
+account_type = 'Checking'
+order by datediff(year,date_of_account_opening,getdate()) asc
+
+/* How long ago did the transaction take place on the account for accounts that had deposit transactions?
+How long has each of our customers been with us in years?
+Which customers have been with us for at least 20 years?
+ Our Customer Service team sends a 5 year, 10 year, 15 year, and 20 year gift to all customers on the anniversary of their account opening. 
+ May you provide them with a list of dates each customer has or will receive their anniversary gifts?*/
+  select contact_number,
+  date_of_account_opening,
+  dateadd(year,5,date_of_account_opening) as Five_Yr_Gift_Date,
+  dateadd(year,10,date_of_account_opening) as Ten_Yr_Gift_Date,
+  dateadd(year,15,date_of_account_opening) as Fifteen_Yr_Gift_Date,
+  dateadd(year,20,date_of_account_opening) as Twenty_Yr_Gift_Date
+  from account
+
+/*How long did it take for the services to be delivered after the claim?*/
+
+select patient_id_no,
+date_of_claim,
+service_delivery_date,
+datediff(day,date_of_claim,service_delivery_date) as Service_Turnaround_Time
+from patient_services_demographics
+
+/*What is the average service delivery time in days?*/
+select 
+avg( datediff(day,date_of_claim,service_delivery_date) ) as Avg_Turnaround_Time
+from patient_services_demographics
+
+/*	What was the most recent delivery date*/
+select max(service_delivery_date) as Most_Recent_Delivery_Date
+from patient_services_demographics
+
+/*How many months ago was the service delivery date?*/
+select patient_id_no,
+service_delivery_date,
+datediff(month,service_delivery_date,getdate()) as Months_Since_Service
+from patient_services_demographics
+
+/*Each claim is subject to a 25% split to insurance companies. Calculate the insurance split for each patient.*/
+
+select patient_id_no,
+amount,
+amount*0.25 as Insurance_Split
+from patient_services_demographics
+where claim_status = 'Approved'
+
+/*What is the average insurance split?*/
+
+select 
+avg( amount*0.25 ) as Avg_Insurance_Split
+from patient_services_demographics
+where claim_status = 'Approved'
+
+/*How much does each employee make per month? 40 hours * 52 weeks * Hourly rate = Annual Salary*/
+
+select employee_id,
+hourly_rate,
+hourly_rate*40*52 as Annual_Salary,
+(hourly_rate*40*52)/12 as Monthly_Salary
+from employee_demographics
+
+/*What is the average monthly salary?*/
+
+select 
+avg( (hourly_rate*40*52)/12 ) as Avg_Monthly_Salary
+from employee_demographics
+
+
+
+
+
+
+
+
+
+
+
